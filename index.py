@@ -21,7 +21,7 @@ def run():
     deployed_folder_permissions = config_settings['FilePermissions']
 
     try:
-        github_username, github_token = open(token_file, 'r').readline().split(sep=':', maxsplit=1)
+        github_username, github_token = open(token_file, 'r').readline().rstrip().split(sep=':', maxsplit=1)
     except ValueError:
         print('Invalid token config. Example: VarChar42:github_token')
         exit(1)
