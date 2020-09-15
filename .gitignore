@@ -128,5 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# PyCharm ignored files
+/shelf/
+/workspace.xml
+
 # Keyfile
 token.cfg
