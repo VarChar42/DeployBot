@@ -203,3 +203,5 @@ fabric.properties
 
 # Keyfile
 token.cfg
+
+test_deploy_dir/*
