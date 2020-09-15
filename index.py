@@ -3,14 +3,39 @@ import requests
 import zipfile
 import shutil
 import platform
+from datetime import datetime
 from utils.botconfig import init_config
+from utils.releasecache import save_release_cache, load_release_cache
 
 
 def log(msg):
     print('\t | %s' % msg)
 
 
+def print_rate_limit_info(gh_session):
+    result = gh_session.get(url='https://api.github.com/rate_limit').json()
+
+    if 'rate' in result:
+        rate = result['rate']
+
+        limit = rate['limit']
+        used = rate['used']
+        reset = rate['reset']
+        remaining = limit - used
+
+        human_reset_time = datetime.utcfromtimestamp(reset).strftime('%Y-%m-%d %H:%M:%S')
+
+        print('Remaining GitHub api calls: %s (%s/%s) Last reset: %s' % (remaining, used, limit, human_reset_time))
+
+        return remaining
+    else:
+        print('Could not fetch github api rate limit')
+        return -1
+
+
 def run():
+    release_cache = load_release_cache()
+
     config = init_config()
     config_settings = config['Settings']
     repos = config.items('Repos')
@@ -31,42 +56,51 @@ def run():
 
     print('Using GitHub account: %s' % github_username)
 
+    if print_rate_limit_info(gh_session) < len(repos)*2:
+        print('There are not enough api calls left! Aborting!')
+        return
+
     if not os.path.exists(temp_folder):
         os.makedirs(temp_folder)
 
     for project_name, repo in repos:
         owner, name = repo.split(sep='/', maxsplit=1)
 
-        print('Deploying "%s"' % project_name)
-        log('Downloading release for %s owned by %s' % (name, owner))
+        print('Deploying (%s)' % project_name)
+        log('Downloading release for (%s) owned by (%s)' % (name, owner))
 
-        result = gh_session.get(url='https://api.github.com/repos/%s/releases/latest' % repo).json()
-        if 'message' in result and result['message'] == 'Not Found':
+        release = gh_session.get(url='https://api.github.com/repos/%s/releases/latest' % repo).json()
+        if 'message' in release and release['message'] == 'Not Found':
             log('Cant find release .. Skipping')
             continue
 
-        if not 'name' in result:
+        if 'name' not in release:
             log('Something went wrong .. Skipping')
-            log('Received message: %s' % result)
+            log('Received message: %s' % release)
             continue
 
-        log('Release found: %s' % result['name'])
-
-        assets = result['assets']
+        assets = release['assets']
 
         if len(assets) < 1:
             log('Release has no assets .. Skipping')
             continue
 
         asset = assets[0]
-        log('Asset found: %s' % asset['name'])
+        log('Using asset (%s) from release (%s)' % (asset['name'], release['name']))
+
+        release_id = release['id']
+        asset_id = asset['id']
+
+        if release_id in release_cache and release_cache[release_id] == asset_id:
+            log('Deployed release is already up to date')
+            continue
 
         if not asset['name'].endswith('.zip'):
             log('Asset is not a zip file .. Skipping')
             continue
 
         dl_url = asset['url']
-        dl_file = '%s/release_%s.zip' % (temp_folder, result['id'])
+        dl_file = '%s/release_%s.zip' % (temp_folder, release_id)
 
         log('Starting download ...')
 
@@ -100,6 +134,10 @@ def run():
         os.remove(dl_file)
 
         log('Done! "%s" got deployed at %s' % (project_name, release_folder))
+
+        release_cache[release_id] = asset_id
+
+    save_release_cache(release_cache)
 
 
 if __name__ == '__main__':
