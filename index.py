@@ -93,7 +93,7 @@ def run():
 
         if platform.system() == 'Linux':
             log('Applying file permissions ...')
-            os.system('chmod -R %s %s' % (deployed_folder_permissions, name))
+            os.system('chmod -R %s %s' % (deployed_folder_permissions, release_folder))
 
         log('Cleanup ... ')
 
