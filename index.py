@@ -29,6 +29,8 @@ def run():
     gh_session = requests.Session()
     gh_session.auth = (github_username, github_token)
 
+    print('Using GitHub account: %s' % github_username)
+
     if not os.path.exists(temp_folder):
         os.makedirs(temp_folder)
 
