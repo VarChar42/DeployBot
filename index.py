@@ -85,7 +85,7 @@ def run():
         if len(assets) < 1:
             log('Release has no assets .. Using zipball instead')
             is_zipball = True
-            continue
+
 
         if not is_zipball:
             asset = assets[0]
