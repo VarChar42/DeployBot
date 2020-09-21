@@ -80,27 +80,33 @@ def run():
             continue
 
         assets = release['assets']
+        is_zipball = False
 
         if len(assets) < 1:
-            log('Release has no assets .. Skipping')
+            log('Release has no assets .. Using zipball instead')
+            is_zipball = True
             continue
 
-        asset = assets[0]
-        log('Using asset (%s) from release (%s)' % (asset['name'], release['name']))
+        if not is_zipball:
+            asset = assets[0]
+            log('Using asset (%s) from release (%s)' % (asset['name'], release['name']))
 
-        release_id = release['id']
-        asset_id = asset['id']
+            release_id = release['id']
+            asset_id = asset['id']
 
-        if release_id in release_cache and release_cache[release_id] == asset_id:
-            log('Deployed release is already up to date')
-            continue
+            if release_id in release_cache and release_cache[release_id] == asset_id:
+                log('Deployed release is already up to date')
+                continue
 
-        if not asset['name'].endswith('.zip'):
-            log('Asset is not a zip file .. Skipping')
-            continue
+            if not asset['name'].endswith('.zip'):
+                log('Asset is not a zip file .. Skipping')
+                continue
 
-        dl_url = asset['url']
-        dl_file = '%s/release_%s.zip' % (temp_folder, release_id)
+            dl_url = asset['url']
+            dl_file = '%s/release_%s.zip' % (temp_folder, release_id)
+        else:
+            dl_url = release['zipball']
+            dl_file = '%s/release_%s.zip' % (temp_folder, 'zipball')
 
         log('Starting download ...')
 
