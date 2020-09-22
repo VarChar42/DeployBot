@@ -56,7 +56,7 @@ def run():
 
     print('Using GitHub account: %s' % github_username)
 
-    if print_rate_limit_info(gh_session) < len(repos)*2:
+    if print_rate_limit_info(gh_session) < len(repos) * 2:
         print('There are not enough api calls left! Aborting!')
         return
 
@@ -86,17 +86,17 @@ def run():
             log('Release has no assets .. Using zipball instead')
             is_zipball = True
 
+        release_id = release['id']
+
+        if project_name in release_cache and release_cache[project_name] == release_id:
+            log('Deployed release is already up to date')
+            continue
+
+        dl_headers = {}
 
         if not is_zipball:
             asset = assets[0]
             log('Using asset (%s) from release (%s)' % (asset['name'], release['name']))
-
-            release_id = release['id']
-            asset_id = asset['id']
-
-            if release_id in release_cache and release_cache[release_id] == asset_id:
-                log('Deployed release is already up to date')
-                continue
 
             if not asset['name'].endswith('.zip'):
                 log('Asset is not a zip file .. Skipping')
@@ -104,13 +104,14 @@ def run():
 
             dl_url = asset['url']
             dl_file = '%s/release_%s.zip' % (temp_folder, release_id)
+            dl_headers = {'Accept': 'application/octet-stream'}
         else:
-            dl_url = release['zipball']
+            dl_url = release['zipball_url']
             dl_file = '%s/release_%s.zip' % (temp_folder, 'zipball')
 
         log('Starting download ...')
 
-        dl_data = gh_session.get(dl_url, headers={'Accept': 'application/octet-stream'})
+        dl_data = gh_session.get(dl_url, headers=dl_headers)
 
         with open(dl_file, 'wb') as file:
             file.write(dl_data.content)
@@ -141,7 +142,7 @@ def run():
 
         log('Done! "%s" got deployed at %s' % (project_name, release_folder))
 
-        release_cache[release_id] = asset_id
+        release_cache[project_name] = release_id
 
     save_release_cache(release_cache)
 

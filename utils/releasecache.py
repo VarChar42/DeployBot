@@ -12,7 +12,7 @@ def load_release_cache():
                 key_value = item.split(':')
                 if len(key_value) != 2:
                     continue
-                cache[int(key_value[0])] = int(key_value[1])
+                cache[key_value[0]] = int(key_value[1])
 
     return cache
 
